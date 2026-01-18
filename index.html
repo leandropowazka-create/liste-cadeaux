@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <title>Ma liste de cadeaux</title>
+  <style>
+    body { font-family: Arial, sans-serif; background:#f5f5f5; margin:0; padding:20px; }
+    h1 { text-align:center; }
+    .admin, .card { background:#fff; border-radius:8px; padding:15px; margin:10px auto; max-width:400px; box-shadow:0 2px 6px rgba(0,0,0,.15); }
+    input, button { width:100%; padding:8px; margin:5px 0; }
+    .list { display:flex; flex-wrap:wrap; gap:15px; justify-content:center; }
+    .card img { width:100%; border-radius:6px; cursor:pointer; }
+    .price { font-weight:bold; }
+  </style>
+</head>
+<body>
+
+<h1>🎁 Ma liste de cadeaux</h1>
+
+<div class="admin" id="adminPanel" style="display:none;">
+  <h2>Ajouter un cadeau</h2>
+  <input id="name" placeholder="Nom de l'objet" />
+  <input id="price" placeholder="Prix" />
+  <input id="link" placeholder="Lien du produit" />
+  <button onclick="addItem()">Ajouter</button>
+</div>
+
+<div class="list" id="list"></div>
+
+<script>
+// mot de passe simple (change-le)
+const ADMIN_PASSWORD = "monanniv";
+
+// stockage local
+let items = JSON.parse(localStorage.getItem("items") || "[]");
+
+// mode admin si ?admin=motdepasse
+const params = new URLSearchParams(window.location.search);
+if (params.get("admin") === ADMIN_PASSWORD) {
+  document.getElementById("adminPanel").style.display = "block";
+}
+
+function save() {
+  localStorage.setItem("items", JSON.stringify(items));
+}
+
+function render() {
+  const list = document.getElementById("list");
+  list.innerHTML = "";
+  items.forEach(item => {
+    const div = document.createElement("div");
+    div.className = "card";
+    div.innerHTML = `
+      <img src="${item.image}" onclick="window.open('${item.link}', '_blank')" />
+      <h3>${item.name}</h3>
+      <div class="price">${item.price}</div>
+    `;
+    list.appendChild(div);
+  });
+}
+
+async function getImageFromLink(url) {
+  // méthode simple : image OpenGraph via proxy public
+  const proxy = "https://api.allorigins.win/raw?url=";
+  try {
+    const html = await fetch(proxy + encodeURIComponent(url)).then(r => r.text());
+    const match = html.match(/property=\"og:image\" content=\"(.*?)\"/);
+    if (match) return match[1];
+  } catch (e) {}
+  return "https://via.placeholder.com/400x300?text=Image";
+}
+
+async function addItem() {
+  const name = document.getElementById("name").value;
+  const price = document.getElementById("price").value;
+  const link = document.getElementById("link").value;
+
+  const image = await getImageFromLink(link);
+
+  items.push({ name, price, link, image });
+  save();
+  render();
+}
+
+render();
+</script>
+
+</body>
+</html>
